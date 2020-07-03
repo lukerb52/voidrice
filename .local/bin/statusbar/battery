@@ -17,7 +17,7 @@ esac
 # acpi | sed "s/Battery [0-9]: //;s/[Dd]ischarging, /🔋/;s/[Nn]ot charging, /🛑/;s/[Cc]harging, /🔌/;s/[Uu]nknown, /♻️/;s/[Ff]ull, /⚡/;s/ \(remaining\|until charged\)//"; exit
 
 # Loop through all attached batteries.
-for battery in /sys/class/power_supply/BAT?
+for battery in /sys/class/power_supply/max170xx_battery
 do
 	# Get its remaining capacity and charge status.
 	capacity=$(cat "$battery"/capacity 2>/dev/null) || break

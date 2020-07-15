@@ -6,7 +6,7 @@
 # to clean up.
 
 # Adds `~/.local/bin` to $PATH
-export PATH="$PATH:$(du "$HOME/.local/bin/" | cut -f2 | paste -sd ':')"
+export PATH="$PATH:$(du "$HOME/.local/bin" | cut -f2 | paste -sd ':')"
 
 # Default programs:
 export EDITOR="nvim"
@@ -68,8 +68,10 @@ ex=🎯:\
 *.me=✍:\
 *.ms=✍:\
 *.png=🖼:\
+*.webp=🖼:\
 *.ico=🖼:\
 *.jpg=📸:\
+*.jpe=📸:\
 *.jpeg=📸:\
 *.gif=🖼:\
 *.svg=🗺:\

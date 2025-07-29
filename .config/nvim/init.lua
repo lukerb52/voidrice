@@ -7,9 +7,7 @@ if vim.fn.filereadable(plug_path) == 0 then
 	print("Downloading junegunn/vim-plug to manage plugins...")
 	vim.fn.mkdir(vim.fn.stdpath('config') .. '/autoload', 'p')
 	vim.fn.system('curl -fLo ' .. plug_path .. ' --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim')
-	vim.api.nvim_create_autocmd("VimEnter", {
-		callback = function() vim.cmd("PlugInstall") end,
-	})
+	vim.api.nvim_create_autocmd("VimEnter", { command = "PlugInstall" })
 end
 
 -- Mappings for ,,
@@ -17,28 +15,29 @@ vim.keymap.set("n", ",,", ":keepp /<++><CR>ca<", { noremap = true })
 vim.keymap.set("i", ",,", "<Esc>:keepp /<++><CR>ca<", { noremap = true })
 
 -- Plugin setup with vim-plug
+local Plug = vim.fn["plug#"]
 vim.fn['plug#begin'](vim.fn.stdpath('config') .. '/plugged')
-vim.fn['plug#']('tpope/vim-surround')
-vim.fn['plug#']('preservim/nerdtree')
-vim.fn['plug#']('junegunn/goyo.vim')
-vim.fn['plug#']('jreybert/vimagit')
-vim.fn['plug#']('vimwiki/vimwiki')
-vim.fn['plug#']('vim-airline/vim-airline')
-vim.fn['plug#']('nvim-tree/nvim-web-devicons')
-vim.fn['plug#']('tpope/vim-commentary')
-vim.fn['plug#']('ap/vim-css-color')
+Plug('tpope/vim-surround')
+Plug('preservim/nerdtree')
+Plug('junegunn/goyo.vim')
+Plug('jreybert/vimagit')
+Plug('vimwiki/vimwiki')
+Plug('vim-airline/vim-airline')
+Plug('nvim-tree/nvim-web-devicons')
+Plug('tpope/vim-commentary')
+Plug('ap/vim-css-color')
 -- New Plugins for LSP Server
-vim.fn['plug#']('neovim/nvim-lspconfig')
-vim.fn['plug#']('hrsh7th/nvim-cmp')
-vim.fn['plug#']('hrsh7th/cmp-nvim-lsp')
-vim.fn['plug#']('hrsh7th/cmp-buffer')
-vim.fn['plug#']('hrsh7th/cmp-path')
+Plug('neovim/nvim-lspconfig')
+Plug('hrsh7th/nvim-cmp')
+Plug('hrsh7th/cmp-nvim-lsp')
+Plug('hrsh7th/cmp-buffer')
+Plug('hrsh7th/cmp-path')
 vim.fn['plug#end']()
 
 -- General settings
 vim.opt.title = true
--- vim.opt.background = "light"
-vim.opt.background = "dark"
+vim.opt.background = "light"
+-- vim.opt.background = "dark"
 vim.opt.mouse = "a"
 vim.opt.hlsearch = false
 vim.opt.clipboard:append("unnamedplus")
@@ -46,7 +45,7 @@ vim.opt.showmode = false
 vim.opt.ruler = false
 vim.opt.laststatus = 0
 vim.opt.showcmd = false
-vim.cmd("colorscheme vim")
+vim.cmd.colorscheme("vim")
 
 -- Basic settings
 vim.keymap.set("n", "c", '"_c', { noremap = true })
@@ -64,8 +63,8 @@ vim.api.nvim_create_autocmd("FileType", {
 vim.keymap.set("v", ".", ":normal .<CR>", { noremap = true })
 
 -- Goyo and spell-check mappings
---vim.keymap.set("n", "<leader>f", ":Goyo | set background=light | set linebreak<CR>", { noremap = true })
-vim.keymap.set("n", "<leader>f", ":Goyo | set background=dark | set linebreak<CR>", { noremap = true })
+vim.keymap.set("n", "<leader>f", ":Goyo | set background=light | set linebreak<CR>", { noremap = true })
+--vim.keymap.set("n", "<leader>f", ":Goyo | set background=dark | set linebreak<CR>", { noremap = true })
 vim.keymap.set("n", "<leader>o", ":setlocal spell! spelllang=en_us<CR>", { noremap = true })
 
 -- Split settings
@@ -76,7 +75,7 @@ vim.opt.splitright = true
 vim.keymap.set("n", "<leader>n", ":NERDTreeToggle<CR>", { noremap = true })
 vim.api.nvim_create_autocmd("BufEnter", {
 	callback = function()
-		if vim.fn.winnr("$") == 1 and vim.b.NERDTree ~= nil and vim.b.NERDTree.isTabTree() then
+		if vim.fn.winnr("$") == 1 and vim.b.NERDTree and vim.b.NERDTree.isTabTree() then
 			vim.cmd("q")
 		end
 	end,
@@ -84,15 +83,13 @@ vim.api.nvim_create_autocmd("BufEnter", {
 vim.g.NERDTreeBookmarksFile = vim.fn.stdpath('data') .. '/NERDTreeBookmarks'
 
 -- vim-airline configuration
-vim.cmd([[
-if !exists('g:airline_symbols')
-	let g:airline_symbols = {}
-	endif
-	let g:airline_symbols.colnr = ' C:'
-	let g:airline_symbols.linenr = ' L:'
-	let g:airline_symbols.maxlinenr = ' '
-	let g:airline#extensions#whitespace#symbol = '!'
-]])
+
+local airline_conf = vim.g.airline_symbols or {}
+airline_conf.colnr = " C:"
+airline_conf.linenr = " L:"
+airline_conf.maxlinenr = "☰ "
+vim.g.airline_symbols = airline_conf
+vim.g['airline#extensions#whitespace#symbol'] = '!'
 
 -- Split navigation
 vim.keymap.set("n", "<C-h>", "<C-w>h", { noremap = true })
@@ -147,7 +144,7 @@ vim.api.nvim_create_autocmd({"BufRead", "BufNewFile"}, {
 })
 
 -- Sudo write
-vim.api.nvim_create_user_command("W", "silent! write !sudo tee % >/dev/null | edit!", {})
+vim.keymap.set("ca", "w!!", "execute 'silent! write !sudo tee % >/dev/null' | edit!")
 
 -- Goyo for mutt
 vim.api.nvim_create_autocmd({"BufRead", "BufNewFile"}, {
@@ -155,11 +152,6 @@ vim.api.nvim_create_autocmd({"BufRead", "BufNewFile"}, {
 	callback = function()
 		vim.cmd("Goyo 80")
 		vim.api.nvim_feedkeys("jk", "n", false)
-	end,
-})
-vim.api.nvim_create_autocmd({"BufRead", "BufNewFile"}, {
-	pattern = "/tmp/neomutt*",
-	callback = function()
 		vim.keymap.set("n", "ZZ", ":Goyo!|x!<CR>", { buffer = true, noremap = true })
 		vim.keymap.set("n", "ZQ", ":Goyo!|q!<CR>", { buffer = true, noremap = true })
 	end,
@@ -205,22 +197,16 @@ if vim.opt.diff:get() then
 end
 
 -- Toggle statusbar
-local hidden_all = 0
+
+local hidden_all = false
 local function toggle_hidden_all()
-	if hidden_all == 0 then
-		hidden_all = 1
-		vim.opt.showmode = false
-		vim.opt.ruler = false
-		vim.opt.laststatus = 0
-		vim.opt.showcmd = false
-	else
-		hidden_all = 0
-		vim.opt.showmode = true
-		vim.opt.ruler = true
-		vim.opt.laststatus = 2
-		vim.opt.showcmd = true
-	end
+	vim.opt.showmode = hidden_all
+	vim.opt.ruler = hidden_all
+	vim.opt.showcmd = hidden_all
+	vim.opt.laststatus = hidden_all and 2 or 0
+	hidden_all = not hidden_all
 end
+
 vim.keymap.set("n", "<leader>h", toggle_hidden_all, { noremap = true })
 
 -- Load shortcuts
@@ -230,7 +216,7 @@ pcall(vim.cmd, "source ~/.config/nvim/shortcuts.vim")
 local lspconfig = require'lspconfig'
 -- These language servers are in pacman or the AUR with the same name as given below, unless otherwise noted.
 local servers = {
---	'server_name',		-- Language name	-- Pacman/AUR name
+	--	'server_name',		-- Language name	-- Pacman/AUR name
 	'pyright',		-- Python		-- pyright
 	'ts_ls',		-- TypeScript		-- typescript-language-server
 	'gopls',		-- Go			-- gopls
@@ -240,7 +226,7 @@ local servers = {
 	'marksman',		-- Markdown		-- marksman
 	'r_language_server',	-- R			-- Run `install.packages("languageserver")` inside R
 	'csharp_ls',		-- C#			-- csharp-ls
---	'omnisharp',		-- C# (legacy)		-- omnisharp-roslyn-bin
+	--	'omnisharp',		-- C# (legacy)		-- omnisharp-roslyn-bin
 	'lua_ls',		-- Lua			-- lua-language-server
 	'yamlls',		-- YAML			-- yaml-language-server
 	'bashls',		-- bash			-- bash-language-server
@@ -272,17 +258,33 @@ cmp.setup({
 vim.keymap.set('n', ']d', vim.diagnostic.goto_next, { desc = "Go to next diagnostic" })
 vim.keymap.set('n', '[d', vim.diagnostic.goto_prev, { desc = "Go to previous diagnostic" })
 
-vim.diagnostic.config({
-	virtual_text = false, -- Disable virtual text to avoid clutter
-	signs = true, -- Show signs in the gutter
-	underline = true, -- Underline errors
-	update_in_insert = false, -- Don’t update diagnostics in insert mode
-})
+local diagnostics_auto_enabled = false
+local diagnostics_autocmd_id = nil
 
--- Automatically show diagnostics on hover
-vim.o.updatetime = 250 -- Adjust delay for hover (in milliseconds)
-vim.api.nvim_create_autocmd("CursorHold", {
-	callback = function()
-		vim.diagnostic.open_float(nil, { focusable = false })
-	end,
-})
+-- Function to toggle diagnostic auto-display
+local function toggle_diagnostics_auto()
+	if diagnostics_auto_enabled then
+		-- Remove the autocommand if it exists
+		if diagnostics_autocmd_id then
+			vim.api.nvim_del_autocmd(diagnostics_autocmd_id)
+			diagnostics_autocmd_id = nil
+		end
+		diagnostics_auto_enabled = false
+		print("Diagnostic auto-display disabled")
+	else
+		-- Create the autocommand
+		diagnostics_autocmd_id = vim.api.nvim_create_autocmd("CursorHold", {
+			callback = function()
+				vim.diagnostic.open_float(nil, { focusable = false, scope = "cursor" })
+			end,
+		})
+		diagnostics_auto_enabled = true
+		print("Diagnostic auto-display enabled")
+	end
+end
+
+-- Keybinding to toggle diagnostic auto-display
+vim.keymap.set('n', '<leader>e', toggle_diagnostics_auto, { desc = "Toggle diagnostic auto-display" })
+
+-- Optional: Manual trigger to show diagnostics immediately
+vim.keymap.set('n', '<leader>E', vim.diagnostic.open_float, { desc = "Show diagnostic under cursor" })

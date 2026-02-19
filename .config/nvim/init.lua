@@ -32,12 +32,14 @@ Plug('hrsh7th/nvim-cmp')
 Plug('hrsh7th/cmp-nvim-lsp')
 Plug('hrsh7th/cmp-buffer')
 Plug('hrsh7th/cmp-path')
+-- Plugins for Debugging
+Plug('mfussenegger/nvim-dap')
 vim.fn['plug#end']()
 
 -- General settings
 vim.opt.title = true
-vim.opt.background = "light"
--- vim.opt.background = "dark"
+-- vim.opt.background = "light"
+vim.opt.background = "dark"
 vim.opt.mouse = "a"
 vim.opt.hlsearch = false
 vim.opt.clipboard:append("unnamedplus")
@@ -62,9 +64,13 @@ vim.api.nvim_create_autocmd("FileType", {
 })
 vim.keymap.set("v", ".", ":normal .<CR>", { noremap = true })
 
+-- Set light or dark theme --
+
+vim.keymap.set("n", "<leader>l", ":set background=light", { noremap = true})
+vim.keymap.set("n", "<leader>d", ":set background=dark", { noremap = true})
+
 -- Goyo and spell-check mappings
-vim.keymap.set("n", "<leader>f", ":Goyo | set background=light | set linebreak<CR>", { noremap = true })
---vim.keymap.set("n", "<leader>f", ":Goyo | set background=dark | set linebreak<CR>", { noremap = true })
+vim.keymap.set("n", "<leader>f", ":Goyo | set linebreak<CR>", { noremap = true })
 vim.keymap.set("n", "<leader>o", ":setlocal spell! spelllang=en_us<CR>", { noremap = true })
 
 -- Split settings
@@ -213,7 +219,8 @@ vim.keymap.set("n", "<leader>h", toggle_hidden_all, { noremap = true })
 pcall(vim.cmd, "source ~/.config/nvim/shortcuts.vim")
 
 -- Syntax Highlighting - LSP setup
-local lspconfig = require'lspconfig'
+local lspconfig = require'lspconfig' -- For Neovim versions before 0.11
+-- local lspconfig = vim.lsp.config
 -- These language servers are in pacman or the AUR with the same name as given below, unless otherwise noted.
 local servers = {
 	--	'server_name',		-- Language name	-- Pacman/AUR name
@@ -288,3 +295,38 @@ vim.keymap.set('n', '<leader>e', toggle_diagnostics_auto, { desc = "Toggle diagn
 
 -- Optional: Manual trigger to show diagnostics immediately
 vim.keymap.set('n', '<leader>E', vim.diagnostic.open_float, { desc = "Show diagnostic under cursor" })
+
+--- DAP ---
+
+-- Load nvim-dap
+local dap = require('dap')
+
+-- Configure Python adapter
+dap.adapters.python = {
+  type = 'executable';
+  command = 'python';
+  args = { '-m', 'debugpy.adapter' };
+}
+
+-- Configure Python debug configurations
+dap.configurations.python = {
+  {
+    type = 'python';
+    request = 'launch';
+    name = "Launch file";
+    program = "${file}";
+    pythonPath = function()
+      return '/usr/bin/python'  -- change to your Python path
+    end;
+  },
+}
+
+-- Keybindings for DAP
+vim.api.nvim_set_keymap('n', '<F5>', "<cmd>lua require'dap'.continue()<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap('n', '<F10>', "<cmd>lua require'dap'.step_over()<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap('n', '<F11>', "<cmd>lua require'dap'.step_into()<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap('n', '<F12>', "<cmd>lua require'dap'.step_out()<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap('n', '<leader>b', "<cmd>lua require'dap'.toggle_breakpoint()<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap('n', '<leader>B', "<cmd>lua require'dap'.set_breakpoint(vim.fn.input('Breakpoint condition: '))<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap('n', '<leader>dr', "<cmd>lua require'dap'.repl.open()<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap('n', '<leader>dl', "<cmd>lua require'dap'.run_last()<CR>", { noremap = true, silent = true })

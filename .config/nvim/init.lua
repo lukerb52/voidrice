@@ -32,8 +32,10 @@ Plug('hrsh7th/nvim-cmp')
 Plug('hrsh7th/cmp-nvim-lsp')
 Plug('hrsh7th/cmp-buffer')
 Plug('hrsh7th/cmp-path')
--- Plugins for Debugging
+-- Plugins for Debugging with DAP
 Plug('mfussenegger/nvim-dap')
+Plug('nvim-neotest/nvim-nio')
+Plug('rcarriga/nvim-dap-ui')
 vim.fn['plug#end']()
 
 -- General settings

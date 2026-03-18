@@ -32,12 +32,17 @@ Plug('hrsh7th/nvim-cmp')
 Plug('hrsh7th/cmp-nvim-lsp')
 Plug('hrsh7th/cmp-buffer')
 Plug('hrsh7th/cmp-path')
+-- Plugins for Debugging with DAP
+Plug('mfussenegger/nvim-dap')
+Plug('nvim-neotest/nvim-nio')
+Plug('rcarriga/nvim-dap-ui')
+Plug('mfussenegger/nvim-dap-python')
 vim.fn['plug#end']()
 
 -- General settings
 vim.opt.title = true
-vim.opt.background = "light"
--- vim.opt.background = "dark"
+-- vim.opt.background = "light"
+vim.opt.background = "dark"
 vim.opt.mouse = "a"
 vim.opt.hlsearch = false
 vim.opt.clipboard:append("unnamedplus")
@@ -62,9 +67,13 @@ vim.api.nvim_create_autocmd("FileType", {
 })
 vim.keymap.set("v", ".", ":normal .<CR>", { noremap = true })
 
+-- Set light or dark theme --
+
+vim.keymap.set("n", "<leader>l", ":set background=light", { noremap = true})
+vim.keymap.set("n", "<leader>d", ":set background=dark", { noremap = true})
+
 -- Goyo and spell-check mappings
-vim.keymap.set("n", "<leader>f", ":Goyo | set background=light | set linebreak<CR>", { noremap = true })
---vim.keymap.set("n", "<leader>f", ":Goyo | set background=dark | set linebreak<CR>", { noremap = true })
+vim.keymap.set("n", "<leader>f", ":Goyo | set linebreak<CR>", { noremap = true })
 vim.keymap.set("n", "<leader>o", ":setlocal spell! spelllang=en_us<CR>", { noremap = true })
 
 -- Split settings
@@ -213,10 +222,20 @@ vim.keymap.set("n", "<leader>h", toggle_hidden_all, { noremap = true })
 pcall(vim.cmd, "source ~/.config/nvim/shortcuts.vim")
 
 -- Syntax Highlighting - LSP setup
-local lspconfig = require'lspconfig'
+
+-- local lspconfig = require'lspconfig' -- For Neovim versions before 0.11
+
 -- These language servers are in pacman or the AUR with the same name as given below, unless otherwise noted.
+
+vim.lsp.start({
+    name = "openscad_lsp",
+    cmd = { "/usr/bin/openscad-lsp" },
+    filetypes = { "scad" },
+    root_dir = vim.fs.dirname(vim.fs.find({ ".git" }, { upward = true })[1] or vim.api.nvim_buf_get_name(0)),
+})
+
 local servers = {
-	--	'server_name',		-- Language name	-- Pacman/AUR name
+	--'server_name',	-- Language name	-- Pacman/AUR name
 	'pyright',		-- Python		-- pyright
 	'ts_ls',		-- TypeScript		-- typescript-language-server
 	'gopls',		-- Go			-- gopls
@@ -230,10 +249,14 @@ local servers = {
 	'lua_ls',		-- Lua			-- lua-language-server
 	'yamlls',		-- YAML			-- yaml-language-server
 	'bashls',		-- bash			-- bash-language-server
+	'cssls',		-- CSS			-- vscode-css-languageserver
+	'openscad-lsp',		-- OpenSCAD		-- openscad-lsp
 }
 -- Automatically set up each LSP server in the list
 for _, server in ipairs(servers) do
-	lspconfig[server].setup {}
+	-- lspconfig[server].setup {} 	-- For Neovim versions before 0.11
+	vim.lsp.config(server, {})	-- for Neovim versions including or after 0.11
+	vim.lsp.enable(server)		-- for Neovim versions including or after 0.11
 end
 
 local cmp = require'cmp'
@@ -283,8 +306,123 @@ local function toggle_diagnostics_auto()
 	end
 end
 
+
 -- Keybinding to toggle diagnostic auto-display
 vim.keymap.set('n', '<leader>e', toggle_diagnostics_auto, { desc = "Toggle diagnostic auto-display" })
 
 -- Optional: Manual trigger to show diagnostics immediately
 vim.keymap.set('n', '<leader>E', vim.diagnostic.open_float, { desc = "Show diagnostic under cursor" })
+
+-- Copy Diagnostics
+
+local function copy_diagnostics()
+	local bufnr = vim.api.nvim_get_current_buf()
+	local line = vim.api.nvim_win_get_cursor(0)[1] - 1  -- 0-indexed
+	local diags = vim.diagnostic.get(bufnr, { lnum = line })
+	if #diags == 0 then
+		print("No diagnostics on this line")
+		return
+	end
+
+	local messages = {}
+	for _, diag in ipairs(diags) do
+		table.insert(messages, diag.message)
+	end
+
+	local all_msg = table.concat(messages, "\n")
+	vim.fn.setreg('+', all_msg)  -- copy to system clipboard
+	print("Copied diagnostics to clipboard")
+end
+
+-- Keybinding to copy diagnostics
+
+vim.keymap.set('n', '<leader>y', copy_diagnostics, { desc = "Copy diagnostics under cursor" })
+
+--- DAP ---
+
+-- Load nvim-dap and dap-ui
+local dap = require('dap')
+local dapui = require('dapui')
+
+-- dap-ui setup
+
+dapui.setup({
+	icons = { expanded = "▾", collapsed = "▸"},
+	mappings = {
+		expand = { "<CR>", "<2-LeftMouse" },
+		open = 'o',
+		remove = 'd',
+		edit = "e",
+		repl = "r",
+	},
+	layouts = {
+		{
+			elements = {
+				"scopes",
+				"breakpoints",
+				"stacks",
+				"watches",
+			},
+			size = 40, -- width of the side panel
+			position = "left",
+		},
+		{
+			elements = {
+				"repl",
+			},
+			size = 10, -- height of the bottom panel
+			position = "bottom",
+		},
+	},
+	floating = {
+		max_height = nil,
+		max_width = nil,
+		border = "rounded",
+		mappings = {
+			close = { "q", "<Esc>" },
+		},
+	},
+})
+
+-- Open dap-ui automatically when debugging starts
+dap.listeners.after.event_initialized["dapui_config"] = function()
+	dapui.open()
+end
+
+-- Close dap-ui automatically when debugging ends
+dap.listeners.before.event_terminated["dapui_config"] = function()
+	dapui.close()
+end
+dap.listeners.before.event_exited["dapui_config"] = function()
+	dapui.close()
+end
+
+-- Configure Python adapter
+dap.adapters.python = {
+	type = 'executable';
+	command = 'python';
+	args = { '-m', 'debugpy.adapter' };
+}
+
+-- Configure Python debug configurations
+dap.configurations.python = {
+	{
+		type = 'python';
+		request = 'launch';
+		name = "Launch file";
+		program = "${file}";
+		pythonPath = function()
+			return '/usr/bin/python'  -- change to your Python path
+		end;
+	},
+}
+
+-- Keybindings for DAP
+vim.api.nvim_set_keymap('n', '<F5>', "<cmd>lua require'dap'.continue()<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap('n', '<F10>', "<cmd>lua require'dap'.step_over()<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap('n', '<F11>', "<cmd>lua require'dap'.step_into()<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap('n', '<F12>', "<cmd>lua require'dap'.step_out()<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap('n', '<leader>b', "<cmd>lua require'dap'.toggle_breakpoint()<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap('n', '<leader>B', "<cmd>lua require'dap'.set_breakpoint(vim.fn.input('Breakpoint condition: '))<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap('n', '<leader>dr', "<cmd>lua require'dap'.repl.open()<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap('n', '<leader>dl', "<cmd>lua require'dap'.run_last()<CR>", { noremap = true, silent = true })

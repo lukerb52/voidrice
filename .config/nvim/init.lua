@@ -225,14 +225,15 @@ pcall(vim.cmd, "source ~/.config/nvim/shortcuts.vim")
 
 -- local lspconfig = require'lspconfig' -- For Neovim versions before 0.11
 
--- These language servers are in pacman or the AUR with the same name as given below, unless otherwise noted.
 
-vim.lsp.start({
+vim.lsp.start({			-- OpenSCAD LSP compatibility. Doesn't break anything but needs work.
     name = "openscad_lsp",
     cmd = { "/usr/bin/openscad-lsp" },
     filetypes = { "scad" },
     root_dir = vim.fs.dirname(vim.fs.find({ ".git" }, { upward = true })[1] or vim.api.nvim_buf_get_name(0)),
 })
+
+-- These language servers are in pacman or the AUR with the same name as given below, unless otherwise noted.
 
 local servers = {
 	--'server_name',	-- Language name	-- Pacman/AUR name

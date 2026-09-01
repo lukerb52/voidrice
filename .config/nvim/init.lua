@@ -125,18 +125,22 @@ vim.keymap.set("n", "<leader>p", ":!opout %:p<CR>", { noremap = true })
 
 -- Clean tex build files on exit
 vim.api.nvim_create_autocmd("VimLeave", {
-	pattern = "*.tex",
+	pattern = "*.tex", "*.md",
 	command = "!latexmk -c %",
 })
 
 -- Filetype settings
 vim.g.vimwiki_ext2syntax = {
-	['.Rmd'] = 'markdown',
-	['.rmd'] = 'markdown',
 	['.md'] = 'markdown',
 	['.markdown'] = 'markdown',
 	['.mdown'] = 'markdown',
 }
+
+vim.api.nvim_create_autocmd({"BufRead", "BufNewFile"}, {
+	pattern = {"*.Rmd", "*.rmd"},
+	command = "setfiletype rmd",
+})
+vim.g.vimwiki_global_ext = 0
 vim.keymap.set("n", "<leader>v", ":VimwikiIndex<CR>", { noremap = true })
 vim.g.vimwiki_list = {{path = '~/.local/share/nvim/vimwiki', syntax = 'markdown', ext = '.md'}}
 vim.api.nvim_create_autocmd({"BufRead", "BufNewFile"}, {
@@ -225,6 +229,7 @@ pcall(vim.cmd, "source ~/.config/nvim/shortcuts.vim")
 
 -- local lspconfig = require'lspconfig' -- For Neovim versions before 0.11
 
+-- These language servers are in pacman or the AUR with the same name as given below, unless otherwise noted.
 
 vim.lsp.start({			-- OpenSCAD LSP compatibility. Doesn't break anything but needs work.
     name = "openscad_lsp",

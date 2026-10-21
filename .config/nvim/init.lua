@@ -50,6 +50,7 @@ vim.opt.showmode = false
 vim.opt.ruler = false
 vim.opt.laststatus = 0
 vim.opt.showcmd = false
+vim.opt.termguicolors = false	-- Use the terminal's colors (Xresources)
 vim.cmd.colorscheme("vim")
 
 -- Basic settings

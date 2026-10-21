@@ -69,8 +69,8 @@ vim.keymap.set("v", ".", ":normal .<CR>", { noremap = true })
 
 -- Set light or dark theme --
 
-vim.keymap.set("n", "<leader>l", ":set background=light", { noremap = true})
-vim.keymap.set("n", "<leader>d", ":set background=dark", { noremap = true})
+vim.keymap.set("n", "<leader>l", ":set background=light<CR>", { noremap = true })
+vim.keymap.set("n", "<leader>tb", ":set background=dark<CR>", { noremap = true })
 
 -- Goyo and spell-check mappings
 vim.keymap.set("n", "<leader>f", ":Goyo | set linebreak<CR>", { noremap = true })
@@ -125,8 +125,13 @@ vim.keymap.set("n", "<leader>p", ":!opout %:p<CR>", { noremap = true })
 
 -- Clean tex build files on exit
 vim.api.nvim_create_autocmd("VimLeave", {
-	pattern = "*.tex", "*.md",
-	command = "!latexmk -c %",
+	pattern = { "*.tex", "*.md" },
+	callback = function()
+		local tex = vim.fn.expand("%:p:r") .. ".tex"
+		if vim.fn.filereadable(tex) == 1 then
+			vim.fn.system({ "latexmk", "-c", tex })
+		end
+	end,
 })
 
 -- Filetype settings
@@ -201,7 +206,7 @@ vim.api.nvim_create_autocmd("BufWritePost", {
 })
 vim.api.nvim_create_autocmd("BufWritePost", {
 	pattern = "~/.local/src/dwmblocks/config.h",
-	command = "!cd ~/.local/src/dwmblocks/; sudo make install && { killall -q dwmblocks;setsid -f dwmblocks }",
+	command = "!cd ~/.local/src/dwmblocks/; sudo make install && { killall -q dwmblocks; setsid -f dwmblocks; }",
 })
 
 -- Diff highlighting
@@ -231,15 +236,6 @@ pcall(vim.cmd, "source ~/.config/nvim/shortcuts.vim")
 
 -- These language servers are in pacman or the AUR with the same name as given below, unless otherwise noted.
 
-vim.lsp.start({			-- OpenSCAD LSP compatibility. Doesn't break anything but needs work.
-    name = "openscad_lsp",
-    cmd = { "/usr/bin/openscad-lsp" },
-    filetypes = { "scad" },
-    root_dir = vim.fs.dirname(vim.fs.find({ ".git" }, { upward = true })[1] or vim.api.nvim_buf_get_name(0)),
-})
-
--- These language servers are in pacman or the AUR with the same name as given below, unless otherwise noted.
-
 local servers = {
 	--'server_name',	-- Language name	-- Pacman/AUR name
 	'pyright',		-- Python		-- pyright
@@ -256,36 +252,37 @@ local servers = {
 	'yamlls',		-- YAML			-- yaml-language-server
 	'bashls',		-- bash			-- bash-language-server
 	'cssls',		-- CSS			-- vscode-css-languageserver
-	'openscad-lsp',		-- OpenSCAD		-- openscad-lsp
+	'openscad_lsp',		-- OpenSCAD		-- openscad-lsp
 }
 -- Automatically set up each LSP server in the list
 for _, server in ipairs(servers) do
 	-- lspconfig[server].setup {} 	-- For Neovim versions before 0.11
-	vim.lsp.config(server, {})	-- for Neovim versions including or after 0.11
 	vim.lsp.enable(server)		-- for Neovim versions including or after 0.11
 end
 
-local cmp = require'cmp'
-cmp.setup({
-	mapping = {
-		['<C-n>'] = cmp.mapping.select_next_item(), -- Next suggestion
-		['<C-j>'] = cmp.mapping.select_next_item(), -- Next suggestion (vim-style bind)
-		['<C-p>'] = cmp.mapping.select_prev_item(), -- Previous suggestion
-		['<C-k>'] = cmp.mapping.select_prev_item(), -- Previous suggestion (vim-style bind)
-		['<C-y>'] = cmp.mapping.confirm({ select = true }), -- Confirm completion
-		['<CR>'] = cmp.mapping.confirm({ select = true }), -- Confirm completion
-		['<C-Space>'] = cmp.mapping.complete(), -- Trigger completion manually
-	},
-	sources = {
-		{ name = 'nvim_lsp' },  -- Use LSP as a completion source
-		{ name = 'buffer' },    -- Suggest words from open buffers
-		{ name = 'path' },      -- Suggest file paths
-	}
-})
+local ok_cmp, cmp = pcall(require, 'cmp')	-- Not available until PlugInstall has run
+if ok_cmp then
+	cmp.setup({
+		mapping = {
+			['<C-n>'] = cmp.mapping.select_next_item(), -- Next suggestion
+			['<C-j>'] = cmp.mapping.select_next_item(), -- Next suggestion (vim-style bind)
+			['<C-p>'] = cmp.mapping.select_prev_item(), -- Previous suggestion
+			['<C-k>'] = cmp.mapping.select_prev_item(), -- Previous suggestion (vim-style bind)
+			['<C-y>'] = cmp.mapping.confirm({ select = true }), -- Confirm completion
+			['<CR>'] = cmp.mapping.confirm({ select = true }), -- Confirm completion
+			['<C-Space>'] = cmp.mapping.complete(), -- Trigger completion manually
+		},
+		sources = {
+			{ name = 'nvim_lsp' },  -- Use LSP as a completion source
+			{ name = 'buffer' },    -- Suggest words from open buffers
+			{ name = 'path' },      -- Suggest file paths
+		}
+	})
+end
 
 -- Diagnostic navigation mappings
-vim.keymap.set('n', ']d', vim.diagnostic.goto_next, { desc = "Go to next diagnostic" })
-vim.keymap.set('n', '[d', vim.diagnostic.goto_prev, { desc = "Go to previous diagnostic" })
+vim.keymap.set('n', ']d', function() vim.diagnostic.jump({ count = 1, float = true }) end, { desc = "Go to next diagnostic" })
+vim.keymap.set('n', '[d', function() vim.diagnostic.jump({ count = -1, float = true }) end, { desc = "Go to previous diagnostic" })
 
 local diagnostics_auto_enabled = false
 local diagnostics_autocmd_id = nil
@@ -347,15 +344,16 @@ vim.keymap.set('n', '<leader>y', copy_diagnostics, { desc = "Copy diagnostics un
 --- DAP ---
 
 -- Load nvim-dap and dap-ui
-local dap = require('dap')
-local dapui = require('dapui')
+local ok_dap, dap = pcall(require, 'dap')
+local ok_dapui, dapui = pcall(require, 'dapui')
+if not (ok_dap and ok_dapui) then return end	-- Not available until PlugInstall has run
 
 -- dap-ui setup
 
 dapui.setup({
 	icons = { expanded = "▾", collapsed = "▸"},
 	mappings = {
-		expand = { "<CR>", "<2-LeftMouse" },
+		expand = { "<CR>", "<2-LeftMouse>" },
 		open = 'o',
 		remove = 'd',
 		edit = "e",
@@ -428,7 +426,7 @@ vim.api.nvim_set_keymap('n', '<F5>', "<cmd>lua require'dap'.continue()<CR>", { n
 vim.api.nvim_set_keymap('n', '<F10>', "<cmd>lua require'dap'.step_over()<CR>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap('n', '<F11>', "<cmd>lua require'dap'.step_into()<CR>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap('n', '<F12>', "<cmd>lua require'dap'.step_out()<CR>", { noremap = true, silent = true })
-vim.api.nvim_set_keymap('n', '<leader>b', "<cmd>lua require'dap'.toggle_breakpoint()<CR>", { noremap = true, silent = true })
+vim.api.nvim_set_keymap('n', '<leader>db', "<cmd>lua require'dap'.toggle_breakpoint()<CR>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap('n', '<leader>B', "<cmd>lua require'dap'.set_breakpoint(vim.fn.input('Breakpoint condition: '))<CR>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap('n', '<leader>dr', "<cmd>lua require'dap'.repl.open()<CR>", { noremap = true, silent = true })
 vim.api.nvim_set_keymap('n', '<leader>dl', "<cmd>lua require'dap'.run_last()<CR>", { noremap = true, silent = true })
